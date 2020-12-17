@@ -17,4 +17,20 @@ class UsernameCountView(View):
 
         return JsonResponse({'code': 0,
                              'message': 'OK',
-                             'count': count,})
+                             'count': count, })
+
+
+# GET /mobiles/(?P<mobile>1[3-9]\d{9})/count/
+class MobileCountView(View):
+    def get(self, request, mobile):
+        """ 判断手机号是否重复注册 """
+        # 1.查询数据库判断mobile是否存在
+        try:
+            count = User.objects.filter(mobile=mobile).count()
+        except Exception as e:
+            return JsonResponse({'code': 400,
+                                 'message': '操作数据库失败!'})
+        # 2.返回响应数据
+        return JsonResponse({'code': 0,
+                             'message': 'OK',
+                             'count': count})
