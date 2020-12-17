@@ -26,10 +26,16 @@ class ImageCodeView(View):
         # 3.返回验证码图片数据
         return HttpResponse(image, content_type='image/jpg')
 
+
 # GET /sms_codes/(?P<mobile>1[3-9]\d{9})/
 class SMSCodeView(View):
     def get(self, request, mobile):
         """ 获取短信验证码 """
+        redis_conn = get_redis_connection('verify_code')
+        send_flag = redis_conn.get('send_flag_%s' % mobile)
+        if send_flag:
+            return JsonResponse({'code': 400,
+                                 'message': '短信验证码发送过于频繁!'})
         # 1.接收参数并进行校验
         image_code = request.GET.get('image_code')
         uuid = request.GET.get('image_code_id')
@@ -40,7 +46,6 @@ class SMSCodeView(View):
 
         # 2.对比图片验证码
         # 获取redis中的图片验证码
-        redis_conn = get_redis_connection('verify_code')
         image_code_redis = redis_conn.get('img_%s' % uuid)
         if image_code_redis is None:
             return JsonResponse({'code': 400,
@@ -61,6 +66,9 @@ class SMSCodeView(View):
 
         # 保存短信验证码
         redis_conn.set('sms_%s' % mobile, sms_code, 300)
+
+        # 设置短信发送的标记,有效期为:60s
+        redis_conn.set('send_flag_%s' % mobile, 1, 60)
 
         # 发送短信验证码
         CCP().send_template_sms(mobile, [sms_code, 5], 1)
