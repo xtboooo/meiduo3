@@ -189,3 +189,7 @@ LOGGING = {
         },
     }
 }
+
+# 替换auth子应用中内置的User模型类
+# 固定格式：AUTH_USER_MODEL = '子应用名.模型类名'
+AUTH_USER_MODEL = 'users.User'
