@@ -2,12 +2,13 @@ import random
 from django.http import HttpResponse, JsonResponse
 from django.views import View
 
+from celery_tasks.sms.tasks import send_sms_code
 from django_redis import get_redis_connection
 from meiduo_mall.libs.captcha.captcha import captcha
+# from meiduo_mall.libs.yuntongxun.ccp_sms import CCP
+
 
 import logging
-
-from meiduo_mall.libs.yuntongxun.ccp_sms import CCP
 
 logger = logging.getLogger('django')
 
@@ -18,6 +19,7 @@ class ImageCodeView(View):
         """ 获取图片验证码数据 """
         # 1.生成图片验证码数据
         text, image = captcha.generate_captcha()
+        print(f'图片验证码为{text}')
 
         # 2.将图片验证码存储到redis数据库
         redis_conn = get_redis_connection('verify_code')
@@ -75,9 +77,8 @@ class SMSCodeView(View):
         # 执行redis pipeline请求
         pl.execute()
 
-        # 发送短信验证码
-        CCP().send_template_sms(mobile, [sms_code, 5], 1)
-
+        # 发出发送短信的任务消息，SMSCodeView这里的作用就是生产者
+        send_sms_code.delay(mobile, sms_code)
         # 返回响应结果
         return JsonResponse({'code': 400,
                              'message': '发送短信成功!'})
