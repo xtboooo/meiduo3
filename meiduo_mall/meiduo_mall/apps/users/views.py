@@ -141,6 +141,12 @@ class LoginView(View):
             return JsonResponse({'code': 400,
                                  'message': '缺少必传参数!'})
 
+        # 判断客户端传递的username 参数是否符合手机号格式
+        if re.match(r'^1[3-9]\d{9}$', username):
+            User.USERNAME_FIELD = 'mobile'
+        else:
+            User.USERNAME_FIELD = 'username'
+
         # 用户名密码是否正确
         user = authenticate(username=username, password=password)
 
@@ -157,4 +163,4 @@ class LoginView(View):
 
         # 返回响应,登陆成功
         return JsonResponse({'code': 0,
-                             'message': 'OK',})
+                             'message': 'OK', })
