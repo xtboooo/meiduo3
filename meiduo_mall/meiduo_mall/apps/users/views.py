@@ -1,7 +1,7 @@
 import json
 import re
 
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.views import View
@@ -173,4 +173,20 @@ class LoginView(View):
         response.set_cookie('username',
                             user.username,
                             max_age=14 * 24 * 3600)
+        return response
+
+
+# DELETE /logout/
+class LogoutView(View):
+    def delete(self, request):
+        """ 退出登录 """
+        # 1.请求删除登录用户的session信息
+        logout(request)
+
+        # 2.删除cookie中的username
+        response = JsonResponse({'code':0,
+                                 'message':'OK',})
+        response.delete_cookie('username')
+
+        # 3.返回响应
         return response
