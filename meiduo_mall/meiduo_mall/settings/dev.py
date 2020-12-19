@@ -37,10 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
-
+    # 子应用注册
     'users.apps.UsersConfig',
     'verifications.apps.VerificationsConfig',
+    'oauth.apps.OauthConfig',
 ]
+
 
 
 MIDDLEWARE = [
@@ -126,7 +128,6 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 # 设置session数据存储到CACHES缓存的session配置中
 SESSION_CACHE_ALIAS = "session"
 
-
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
 
@@ -162,7 +163,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
-
 
 # 日志存储配置
 LOGGING = {
@@ -209,7 +209,6 @@ LOGGING = {
 # 替换auth子应用中内置的User模型类
 # 固定格式：AUTH_USER_MODEL = '子应用名.模型类名'
 AUTH_USER_MODEL = 'users.User'
-
 
 # CORS跨域请求白名单设置
 CORS_ORIGIN_WHITELIST = (
