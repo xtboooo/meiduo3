@@ -199,6 +199,11 @@ class UserInfoView(View):
         # 1.获取登录用户对象
         user = request.user
 
+        # 判断用户是否登陆
+        if not user.is_authenticated:
+            return JsonResponse({'code': 400,
+                                 'message': '用户未登录!'})
+
         # 2.返回响应数据
         info = {
             'username': user.username,
@@ -209,5 +214,3 @@ class UserInfoView(View):
         return JsonResponse({'code': 0,
                              'message': 'OK',
                              'user': info, })
-
-
