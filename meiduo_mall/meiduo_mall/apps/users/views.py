@@ -8,6 +8,8 @@ from django.views import View
 from django_redis import get_redis_connection
 
 from meiduo_mall.utils.mixins import LoginRequiredMixin
+
+from celery_tasks.email.tasks import send_verify_email
 from users.models import User
 
 import logging
@@ -242,6 +244,11 @@ class UserEmailView(LoginRequiredMixin, View):
         except Exception as e:
             return JsonResponse({'code': 400,
                                  'message': '邮箱设置失败!'})
+
+        # Celery异步发送邮箱验证邮件
+        verify_url = 'http://邮件验证链接地址'
+        # 发出邮件发送的任务消息
+        send_verify_email.delay(email, verify_url)
 
         # 返回响应
         return JsonResponse({'code': 0,
