@@ -253,3 +253,33 @@ class UserEmailView(LoginRequiredMixin, View):
         # 返回响应
         return JsonResponse({'code': 0,
                              'message': 'OK'})
+
+
+# PUT /emails/verification/
+class EmailVerifyView(View):
+    def put(self, request):
+        """ 用户邮箱登陆验证 """
+        # 1.获取登录的用户token并进行校验
+        token = request.GET.get('token')
+        if not token:
+            return JsonResponse({'code': 400,
+                                 'message': '缺少token参数!'})
+
+        # 对用户的信息进行解密
+        user = User.check_verify_email_token(token)
+
+        if user is None:
+            return JsonResponse({'code': 400,
+                                 'message': 'token信息有误!'})
+
+        # 2.设置对应用户的邮箱验证为已验证
+        try:
+            user.email_active = True
+            user.save()
+        except Exception as e:
+            return JsonResponse({'code': 400,
+                                 'message': '验证邮箱失败!'})
+
+        # 3.返回响应
+        return JsonResponse({'code': 0,
+                             'message': 'OK'})

@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from itsdangerous import TimedJSONWebSignatureSerializer
+from itsdangerous import TimedJSONWebSignatureSerializer, BadData
 from django.conf import settings
 
 
@@ -30,3 +30,24 @@ class User(AbstractUser):
         # 生成邮件验证链接地址
         verify_url = settings.EMAIL_VERIFY_URL + token
         return verify_url
+
+    @staticmethod
+    def check_verify_email_token(token):
+        serializer = TimedJSONWebSignatureSerializer(settings.SECRET_KEY)
+
+        # 对加密的用户个人信息token进行解密
+        try:
+            data = serializer.loads(token)
+        except BadData as e:
+            return None
+        else:
+            user_id = data.get('user_id')
+            email = data.get('email')
+
+        # 获取对应用户对象数据
+        try:
+            user = User.objects.get(id=user_id, email=email)
+        except User.DoesNotExist:
+            return None
+        else:
+            return user
