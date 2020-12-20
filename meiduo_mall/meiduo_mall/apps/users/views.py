@@ -246,7 +246,7 @@ class UserEmailView(LoginRequiredMixin, View):
                                  'message': '邮箱设置失败!'})
 
         # Celery异步发送邮箱验证邮件
-        verify_url = 'http://邮件验证链接地址'
+        verify_url = user.generate_verify_email_url()
         # 发出邮件发送的任务消息
         send_verify_email.delay(email, verify_url)
 

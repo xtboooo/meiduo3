@@ -236,3 +236,7 @@ EMAIL_HOST_USER = 'xtbo9719@163.com'
 EMAIL_HOST_PASSWORD = 'INBXHZCAIAHGDMNX'
 # 收件人看到的发件人
 EMAIL_FROM = '美多商城<xtbo9719@163.com>'
+
+# 邮箱验证链接：该配置项名字是自己指定的，不固定
+EMAIL_VERIFY_URL = 'http://www.meiduo.site:8080/success_verify_email.html?token='
+
