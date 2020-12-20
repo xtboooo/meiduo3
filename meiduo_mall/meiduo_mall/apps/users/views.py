@@ -184,9 +184,30 @@ class LogoutView(View):
         logout(request)
 
         # 2.删除cookie中的username
-        response = JsonResponse({'code':0,
-                                 'message':'OK',})
+        response = JsonResponse({'code': 0,
+                                 'message': 'OK', })
         response.delete_cookie('username')
 
         # 3.返回响应
         return response
+
+
+# GET /user/
+class UserInfoView(View):
+    def get(self, request):
+        """ 获取登录用户个人信息 """
+        # 1.获取登录用户对象
+        user = request.user
+
+        # 2.返回响应数据
+        info = {
+            'username': user.username,
+            'mobile': user.mobile,
+            'email': user.email,
+            'email_active': user.email_active,
+        }
+        return JsonResponse({'code': 0,
+                             'message': 'OK',
+                             'user': info, })
+
+
