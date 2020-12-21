@@ -57,3 +57,7 @@ class SubAreasView(View):
         return JsonResponse({'code': 0,
                              'message': 'OK',
                              'subs': subs_li, })
+
+
+
+
