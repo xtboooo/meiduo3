@@ -464,4 +464,34 @@ class UpdateAddressView(LoginRequiredMixin, View):
         }
         return JsonResponse({'code': 0,
                              'message': 'OK',
-                             'address': new_address,})
+                             'address': new_address, })
+
+    def delete(self, request, address_id):
+        """ 登录⽤用户指定收货地址删除 """
+        user = request.user
+        try:
+            del_address = Address.objects.get(user=user, id=address_id, is_delete=False)
+            del_address.is_delete = True
+            del_address.save()
+        except Exception as e:
+            return JsonResponse({'code': 400,
+                                 'message': 'OK', })
+
+        return JsonResponse({'code': 0,
+                             'message': 'OK'})
+
+
+# PUT /addresses/(?P<address_id>\d+)/default/
+class UpdateDefaultAddressView(LoginRequiredMixin, View):
+    def put(self, request, address_id):
+        """ 登录⽤用户默认收货地址设置 """
+        user = request.user
+        try:
+            user.default_address_id = address_id
+            user.save()
+        except Exception as e:
+            return JsonResponse({'code': 400,
+                                 'message': '设置默认地址出错!'})
+
+        return JsonResponse({'code': 0,
+                             'message': 'OK', })
