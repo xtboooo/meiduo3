@@ -17,6 +17,6 @@ urlpatterns = {
     re_path(r'^addresses/$', views.AddressView.as_view()),
     re_path(r'^addresses/(?P<address_id>\d+)/$', views.UpdateAddressView.as_view()),
     re_path(r'^addresses/(?P<address_id>\d+)/default/$', views.UpdateDefaultAddressView.as_view()),
-
-
+    re_path(r'^addresses/(?P<address_id>\d+)/title/$', views.UpdateAddressTitleView.as_view()),
+    re_path(r'^password/$', views.UpdatePasswordView.as_view()),
 }

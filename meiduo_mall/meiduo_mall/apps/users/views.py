@@ -495,3 +495,48 @@ class UpdateDefaultAddressView(LoginRequiredMixin, View):
 
         return JsonResponse({'code': 0,
                              'message': 'OK', })
+
+
+# PUT /addresses/(?P<address_id>\d+)/title/
+class UpdateAddressTitleView(LoginRequiredMixin, View):
+    def put(self, request, address_id):
+        """ 登录⽤用户指定收货地址标题设置 """
+        user = request.user
+        req_data = json.loads(request.body)
+        title = req_data.get('title')
+        try:
+            address = Address.objects.get(user=user, id=address_id, is_delete=False)
+            address.title = title
+            address.save()
+        except Exception as e:
+            return JsonResponse({'code': 400,
+                                 'message': '设置地址标题出错!'})
+        return JsonResponse({'code': 0,
+                             'message': 'OK'})
+
+
+# PUT /password/
+class UpdatePasswordView(LoginRequiredMixin, View):
+    def put(self, request):
+        """ 登录⽤用户密码修改 """
+        user = request.user
+        req_data = json.loads(request.body)
+        old_password = req_data.get('old_password')
+        new_password = req_data.get('new_password')
+        new_password2 = req_data.get('new_password2')
+
+        if not user.check_password(old_password):
+            return JsonResponse({'code': 400,
+                                 'message': '密码输入有误!'})
+        if not re.match(r'^[a-zA-Z0-9]{8,20}$', new_password):
+            return JsonResponse({'code': 400,
+                                 'message': 'password格式错误!'})
+
+        try:
+            user.set_password(new_password2)
+            user.save()
+        except Exception as e:
+            return JsonResponse({'code': 400,
+                                 'message': '修改密码出错!'})
+        return JsonResponse({'code': 0,
+                             'message': 'OK'})
