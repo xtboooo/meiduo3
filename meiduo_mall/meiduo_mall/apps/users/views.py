@@ -285,8 +285,45 @@ class EmailVerifyView(View):
                              'message': 'OK'})
 
 
-# POST /addresses/
+# GET/POST /addresses/
 class AddressView(LoginRequiredMixin, View):
+    def get(self, request):
+        """ 登录⽤用户地址数据获取 """
+        # 1.获取当前登录用户
+        user = request.user
+        # 2.获取当前用户的所有收货地址
+        try:
+            addresses = Address.objects.filter(user=user, is_delete=False)
+        except Exception as e:
+            return JsonResponse({'code': 400,
+                                 'message': '获取收货地址数据错误!'})
+
+        default_address_id = user.default_address_id
+        addresses_li = []
+        for address in addresses:
+            address = {
+                'id': address.id,
+                'title': address.title,
+                'receiver': address.receiver,
+                'province': address.province.name,
+                'city': address.city.name,
+                'district': address.district.name,
+                'province_id': address.province_id,
+                'city_id': address.city_id,
+                'district_id': address.district_id,
+                'place': address.place,
+                'mobile': address.mobile,
+                'phone': address.phone,
+                'email': address.email,
+            }
+            addresses_li.append(address)
+
+        # 3.组织数据并返回响应
+        return JsonResponse({'code': 0,
+                             'message': 'OK',
+                             'default_address_id': default_address_id,
+                             'addresses': addresses_li})
+
     def post(self, request):
         """ 用户收货地址新增 """
         user = request.user
@@ -356,3 +393,75 @@ class AddressView(LoginRequiredMixin, View):
         return JsonResponse({'code': 0,
                              'message': 'OK',
                              'address': address_data, })
+
+
+# PUT/DELETE /addresses/(?P<address_id>\d+)/
+class UpdateAddressView(LoginRequiredMixin, View):
+    def put(self, request, address_id):
+        """ 登录⽤用户指定收货地址修改 """
+        user = request.user
+        # 1.接收参数并进行校验
+        req_data = json.loads(request.body)
+        title = req_data.get('title')
+        receiver = req_data.get('receiver')
+        province_id = req_data.get('province_id')
+        city_id = req_data.get('city_id')
+        district_id = req_data.get('district_id')
+        place = req_data.get('place')
+        mobile = req_data.get('mobile')
+        phone = req_data.get('phone')
+        email = req_data.get('email')
+
+        if not all([title, receiver, province_id, city_id, district_id, place, mobile, ]):
+            return JsonResponse({'code': 400,
+                                 'message': '缺少必传参数!'})
+
+        if not re.match(r'^1[3-9]\d{9}$', mobile):
+            return JsonResponse({'code': 400,
+                                 'message': '参数mobile有误!'})
+
+        if phone:
+            if not re.match(r'^(0[0-9]{2,3}-)?([2-9][0-9]{6,7})+(-[0-9]{1,4})?$', phone):
+                return JsonResponse({'code': 400,
+                                     'message': '参数phone有误!'})
+        if email:
+            if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+                return JsonResponse({'code': 400,
+                                     'message': '参数email有误!'})
+        # 2.修改指定地址的数据并进行保存
+        try:
+            old_address = Address.objects.get(user=user, id=address_id, is_delete=False)
+            old_address.title = title
+            old_address.receiver = receiver
+            old_address.province_id = province_id
+            old_address.city_id = city_id
+            old_address.district_id = district_id
+            old_address.place = place
+            old_address.mobile = mobile
+            old_address.phone = phone
+            old_address.email = email
+            old_address.save()
+
+        except Exception as e:
+            return JsonResponse({'code': 400,
+                                 'message': '修改指定地址数据出错!'})
+
+        # 3.返回响应
+        new_address = {
+            "id": address_id,
+            "title": title,
+            "receiver": receiver,
+            "province": old_address.province.name,
+            "city": old_address.city.name,
+            "district": old_address.district.name,
+            "province_id": province_id,
+            "city_id": city_id,
+            "district_id": district_id,
+            "place": place,
+            "mobile": mobile,
+            "phone": phone,
+            "email": email,
+        }
+        return JsonResponse({'code': 0,
+                             'message': 'OK',
+                             'address': new_address,})
