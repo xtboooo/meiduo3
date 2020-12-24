@@ -243,3 +243,8 @@ EMAIL_FROM = '美多商城<xtbo9719@163.com>'
 # 邮箱验证链接：该配置项名字是自己指定的，不固定
 EMAIL_VERIFY_URL = 'http://www.meiduo.site:8080/success_verify_email.html?token='
 
+
+# 生成的静态 html 文件保存目录
+# BASE_DIR：内层 meiduo_mall 的绝对路径
+# GENERATED_STATIC_HTML_FILES_DIR：项目目录，即 meiduo 目录的绝对路径
+GENERATED_STATIC_HTML_FILES_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), 'front_end_pc')
