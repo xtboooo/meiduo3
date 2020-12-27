@@ -61,3 +61,33 @@ class SKUListView(View):
                              'count': paginator.num_pages,
                              'list': sku_li, })
 
+
+# GET /hot/(?P<category_id>\d+)/
+class Hot2SKUView(View):
+    def get(self, request, category_id):
+        """ 获取当前分类下的 TOP2 热销商品数据 """
+        # 1.获取三级分类下所有的SKU,按销量降序排序取并前两位
+        try:
+            skus = SKU.objects.filter(category_id=category_id,
+                                      is_launched=True).order_by('-sales')[:2]
+        except Exception as e:
+            return JsonResponse({'code': 400,
+                                 'message': '分类SKU商品数据获取错误'})
+        hot_skus = []
+
+        # FastDFS 中 nginx 服务器的地址
+        nginx_url = 'http://192.168.19.131:8888/'
+
+        for sku in skus:
+            hot_sku = {
+                'is': sku.id,
+                'name': sku.name,
+                'price': sku.price,
+                'default_image_url': nginx_url + sku.default_image.name
+            }
+            hot_skus.append(hot_sku)
+
+        # 返回响应
+        return JsonResponse({'code': 0,
+                             'message': 'OK',
+                             'hot_skus': hot_skus})
