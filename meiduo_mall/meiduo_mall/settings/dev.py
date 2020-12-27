@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'haystack',
     # 子应用注册
     'users.apps.UsersConfig',
     'verifications.apps.VerificationsConfig',
@@ -248,3 +249,20 @@ EMAIL_VERIFY_URL = 'http://www.meiduo.site:8080/success_verify_email.html?token=
 # BASE_DIR：内层 meiduo_mall 的绝对路径
 # GENERATED_STATIC_HTML_FILES_DIR：项目目录，即 meiduo 目录的绝对路径
 GENERATED_STATIC_HTML_FILES_DIR = os.path.join(os.path.dirname(os.path.dirname(BASE_DIR)), 'front_end_pc')
+
+
+# django-haystack 配置
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        # 配置使用 ElasticSearch 搜索引擎
+        'ENGINE': 'haystack.backends.elasticsearch_backend.ElasticsearchSearchEngine',
+        # 配置 ElasticSearch 服务的地址
+        # 注意：如果不是使用提供的虚拟机，需要将 192.168.19.131 替换为自己虚拟机的IP
+        'URL': 'http://192.168.19.131:9200/',
+        # 存储索引数据的索引库的名称
+        'INDEX_NAME': 'meiduo_mall3',
+    },
+}
+
+# 当添加、修改、删除数据时，自动生成索引
+HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
