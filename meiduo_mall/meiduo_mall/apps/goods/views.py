@@ -5,6 +5,7 @@ from django.views import View
 from goods.models import GoodsCategory, SKU
 from goods.utils import get_breadcrumb
 
+
 # GET /list/(?P<category_id>\d+)/skus/?page=页码&page_size=页容量&ordering=排序方式
 class SKUListView(View):
     def get(self, request, category_id):
@@ -54,8 +55,9 @@ class SKUListView(View):
             })
 
         # 4.返回响应数据
-        return JsonResponse({'code':0,
-                             'message':'OK',
+        return JsonResponse({'code': 0,
+                             'message': 'OK',
                              'breadcrumb': breadcrumb,
                              'count': paginator.num_pages,
                              'list': sku_li, })
+
