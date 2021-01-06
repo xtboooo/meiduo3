@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views import View
+from django.db import transaction
 
 from meiduo_mall.utils.mixins import LoginRequiredMixin
 from carts.utils import CartHelper
@@ -119,62 +120,68 @@ class OrderCommitView(LoginRequiredMixin, View):
         # 运费(此处固定)
         freight = Decimal(10.00)
 
-        # ③ 向 tb_order_info 数据表中添加一行记录
-        try:
-            order = OrderInfo.objects.create(order_id=order_id,
-                                             user=user,
-                                             address=address,
-                                             total_count=total_count,
-                                             total_amount=total_amount,
-                                             pay_method=pay_method,
-                                             status=status,
-                                             freight=freight)
-        except Exception as e:
-            return JsonResponse({'code': 400,
-                                 'message': '保存数据出错'})
+        with transaction.atomic():
+            # 设置数据库操作时，事务中的保存点
+            sid = transaction.savepoint()
 
-        # ④ 遍历用户要购买的商品记录，循环向 tb_order_goods 表中添加记录
-        # 从 redis 中获取用户要购买的商品信息
-        cart_helper = CartHelper(request)
-        cart_dict = cart_helper.get_redis_select_cart()
-        sku_ids = cart_dict.keys()
-
-        for sku_id in sku_ids:
-            sku = SKU.objects.get(id=sku_id)
-            count = cart_dict[sku.id]
-
-            # 判断库存是否充足
-            if count > sku.stock:
-                return JsonResponse({'code': 400,
-                                     'message': '商品库存不足'})
-
-            # 减少SKU商品库存、增加销量
-            sku.stock -= count
-            sku.sales += count
-            sku.save()
-            # 增加对应SPU商品的销量
-
-            sku.spu.sales += count
-            sku.spu.save()
-
-            # 保存订单商品信息
+            # ③ 向 tb_order_info 数据表中添加一行记录
             try:
-                OrderGoods.objects.create(order=order,
-                                          sku=sku,
-                                          count=count,
-                                          price=sku.price)
+                order = OrderInfo.objects.create(order_id=order_id,
+                                                 user=user,
+                                                 address=address,
+                                                 total_count=total_count,
+                                                 total_amount=total_amount,
+                                                 pay_method=pay_method,
+                                                 status=status,
+                                                 freight=freight)
             except Exception as e:
                 return JsonResponse({'code': 400,
                                      'message': '保存数据出错'})
 
-            # 累加计算订单商品的总数量和总价格
-            total_count += total_count
-            total_amount += count * sku.price
+            # ④ 遍历用户要购买的商品记录，循环向 tb_order_goods 表中添加记录
+            # 从 redis 中获取用户要购买的商品信息
+            cart_helper = CartHelper(request)
+            cart_dict = cart_helper.get_redis_select_cart()
+            sku_ids = cart_dict.keys()
 
-        total_amount += freight
-        order.total_count = total_count
-        order.total_amount = total_amount
-        order.save()
+            for sku_id in sku_ids:
+                sku = SKU.objects.get(id=sku_id)
+                count = cart_dict[sku.id]
+
+                # 判断库存是否充足
+                if count > sku.stock:
+                    # 数据库操作时，撤销事务中指定保存点之后的操作
+                    transaction.savepoint_rollback(sid)
+                    return JsonResponse({'code': 400,
+                                         'message': '商品库存不足'})
+
+                # 减少SKU商品库存、增加销量
+                sku.stock -= count
+                sku.sales += count
+                sku.save()
+                # 增加对应SPU商品的销量
+
+                sku.spu.sales += count
+                sku.spu.save()
+
+                # 保存订单商品信息
+                try:
+                    OrderGoods.objects.create(order=order,
+                                              sku=sku,
+                                              count=count,
+                                              price=sku.price)
+                except Exception as e:
+                    return JsonResponse({'code': 400,
+                                         'message': '保存数据出错'})
+
+                # 累加计算订单商品的总数量和总价格
+                total_count += total_count
+                total_amount += count * sku.price
+
+            total_amount += freight
+            order.total_count = total_count
+            order.total_amount = total_amount
+            order.save()
 
         # ⑤ 清除用户购物车中已购买的记录
         cart_helper.clear_redis_selected_cart()
