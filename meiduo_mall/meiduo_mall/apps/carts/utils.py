@@ -214,3 +214,28 @@ class CartHelper:
 
         # 清除cookie数据
         self.response.delete_cookie('carts')
+
+    def get_redis_select_cart(self):
+        """
+        获取redis中被勾选的记录
+        """
+        # sku_id count
+        redis_cart = self.redis_conn.hgetall(self.cart_key)
+        redis_selected = self.redis_conn.smembers(self.cart_selected_key)
+
+        cart_dict = {}
+        for sku_id, count in redis_cart.items():
+            if sku_id in redis_selected:
+                cart_dict[int(sku_id)] = int(count)
+        return cart_dict
+
+    def clear_redis_selected_cart(self):
+        """
+        清除redis中被勾选的记录
+        """
+        redis_selected = self.redis_conn.smembers(self.cart_selected_key)
+
+        pl = self.redis_conn.pipeline()
+        pl.hdel(self.cart_key, *redis_selected)
+        pl.srem(self.cart_selected_key, *redis_selected)
+        pl.execute()
