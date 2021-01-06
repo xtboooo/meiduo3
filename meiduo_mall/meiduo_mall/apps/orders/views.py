@@ -145,38 +145,71 @@ class OrderCommitView(LoginRequiredMixin, View):
             sku_ids = cart_dict.keys()
 
             for sku_id in sku_ids:
-                sku = SKU.objects.get(id=sku_id)
-                count = cart_dict[sku.id]
+                for i in range(3):
+                    sku = SKU.objects.get(id=sku_id)
+                    count = cart_dict[sku.id]
 
-                # 判断库存是否充足
-                if count > sku.stock:
-                    # 数据库操作时，撤销事务中指定保存点之后的操作
-                    transaction.savepoint_rollback(sid)
-                    return JsonResponse({'code': 400,
-                                         'message': '商品库存不足'})
+                    # 记录原始库存和销量
+                    origin_stock = sku.stock
+                    origin_sales = sku.sales
 
-                # 减少SKU商品库存、增加销量
-                sku.stock -= count
-                sku.sales += count
-                sku.save()
-                # 增加对应SPU商品的销量
+                    # 打印下单提示信息
+                    print('下单用户：%s 商品库存：%d 购买数量：%d 尝试第 %d 次' % (
+                        user.username, sku.stock, count, i + 1))
 
-                sku.spu.sales += count
-                sku.spu.save()
+                    # 判断库存是否充足
+                    if count > sku.stock:
+                        # 数据库操作时，撤销事务中指定保存点之后的操作
+                        transaction.savepoint_rollback(sid)
+                        return JsonResponse({'code': 400,
+                                             'message': '商品库存不足'})
 
-                # 保存订单商品信息
-                try:
-                    OrderGoods.objects.create(order=order,
-                                              sku=sku,
-                                              count=count,
-                                              price=sku.price)
-                except Exception as e:
-                    return JsonResponse({'code': 400,
-                                         'message': '保存数据出错'})
+                    # 进行休眠操作，让 CPU 调度其它进程或线程，模拟订单并发问题
+                    import time
+                    time.sleep(10)
 
-                # 累加计算订单商品的总数量和总价格
-                total_count += total_count
-                total_amount += count * sku.price
+                    # 减少SKU商品库存、增加销量
+                    new_stock = sku.stock - count
+                    new_sales = sku.sales + count
+
+                    # 注意：update 方法返回的是被更新的行数
+                    # update tb_sku set stock=<new_stock>, sales=<news_sales>
+                    # where id=<sku_id> and stock=<origin_stock>;
+
+                    res = SKU.objects.filter(id=sku_id,
+                                             stock=origin_stock).update(stock=new_stock,
+                                                                        sales=new_sales)
+
+                    if res == 0:
+                        if i == 2:
+                            # 尝试下单更新了 3 次，仍然失败，报下单失败错误
+                            # 数据库操作时，撤销事务中指定保存点之后的操作
+                            transaction.savepoint_rollback(sid)
+                            return JsonResponse({'code': 400,
+                                                 'message': '下单失败'})
+                        # 更新失败,重新进行尝试
+                        continue
+
+                    # 增加对应SPU商品的销量
+                    sku.spu.sales += count
+                    sku.spu.save()
+
+                    # 保存订单商品信息
+                    try:
+                        OrderGoods.objects.create(order=order,
+                                                  sku=sku,
+                                                  count=count,
+                                                  price=sku.price)
+                    except Exception as e:
+                        return JsonResponse({'code': 400,
+                                             'message': '保存数据出错'})
+
+                    # 累加计算订单商品的总数量和总价格
+                    total_count += total_count
+                    total_amount += count * sku.price
+
+                    # 更新成功,退出循环
+                    break
 
             total_amount += freight
             order.total_count = total_count
