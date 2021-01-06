@@ -11,6 +11,7 @@ import logging
 
 from django_redis import get_redis_connection
 
+from carts.utils import CartHelper
 from oauth.models import OAuthQQUser
 from oauth.utils import generate_secret_openid, check_secret_openid
 from users.models import User
@@ -80,6 +81,10 @@ class QQUserView(View):
             # 设置cookie
             response.set_cookie('username', user.username,
                                 max_age=14 * 24 * 3600)
+
+            # 增加代码：合并购物车数据
+            cart_helper = CartHelper(request, response)
+            cart_helper.merge_cookie_cart_to_redis()
 
             # 返回响应
             return response
@@ -161,4 +166,9 @@ class QQUserView(View):
         # 设置cookie
         response.set_cookie('username', user.username,
                             max_age=14 * 24 * 3600)
+
+        # 增加代码：合并购物车数据
+        cart_helper = CartHelper(request, response)
+        cart_helper.merge_cookie_cart_to_redis()
+
         return response

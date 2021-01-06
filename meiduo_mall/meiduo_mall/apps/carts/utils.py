@@ -169,3 +169,48 @@ class CartHelper:
                 for sku_id in cart_dict:
                     cart_dict[sku_id]['selected'] = selected
                 self._set_cookie_cart(cart_dict)
+
+    def merge_cookie_cart_to_redis(self):
+        """将cookie中的购物车数据合并到redis"""
+
+        # 加载 cookie 中的购物车记录数据
+        cart_dict = self._load_cookie_cart()
+
+        if not cart_dict:
+            return None
+
+        # 保存 cookie 购物车记录数据中对应商品的id及添加的数量count
+        carts = {}
+
+        # 保存 cookie 购物车记录数据中被勾选的记录对应商品的id
+        redis_cart_selected_add = []
+
+        # 保存 cookie 购物车记录数据中未被勾选的记录对应商品的id
+        redis_cart_selected_remove = []
+
+        # 遍历 cookie 中的购物车记录数据，分别存放的不同的位置
+        for sku_id, values in cart_dict.items():
+            count = values['count']
+            selected = values['selected']
+
+            # 保存购物车记录对应商品id和数量count
+            carts[sku_id] = count
+
+            if selected:
+                redis_cart_selected_add.append(sku_id)
+            else:
+                redis_cart_selected_remove.append(sku_id)
+
+        # 合并cookie中的购物车数据到redis，不冲突则是添加，冲突则是直接覆盖
+        pl = self.redis_conn.pipeline()
+        pl.hmset(self.cart_key, carts)
+
+        if redis_cart_selected_add:
+            pl.sadd(self.cart_selected_key, *redis_cart_selected_add)
+        if redis_cart_selected_remove:
+            pl.srem(self.cart_selected_key, *redis_cart_selected_remove)
+
+        pl.execute()
+
+        # 清除cookie数据
+        self.response.delete_cookie('carts')

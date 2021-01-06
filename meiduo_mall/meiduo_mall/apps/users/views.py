@@ -9,6 +9,7 @@ from django_redis import get_redis_connection
 
 from meiduo_mall.utils.mixins import LoginRequiredMixin
 
+from carts.utils import CartHelper
 from celery_tasks.email.tasks import send_verify_email
 from users.models import User, Address
 
@@ -119,6 +120,9 @@ class RegisterView(View):
         response.set_cookie('username',
                             user.username,
                             max_age=14 * 24 * 3600)
+        # 增加代码：合并购物车数据
+        cart_helper = CartHelper(request, response)
+        cart_helper.merge_cookie_cart_to_redis()
 
         return response
 
@@ -176,6 +180,11 @@ class LoginView(View):
         response.set_cookie('username',
                             user.username,
                             max_age=14 * 24 * 3600)
+
+        # 增加代码：合并购物车数据
+        cart_helper = CartHelper(request, response)
+        cart_helper.merge_cookie_cart_to_redis()
+
         return response
 
 
